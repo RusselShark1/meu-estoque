@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Fundo Circular/Quadrado -->
+  <rect width="512" height="512" rx="100" fill="#3A3B3C"/>
+  
+  <!-- Letra U -->
+  <path d="M 120 140 L 120 310 C 120 350 145 372 175 372 C 205 372 230 350 230 310 L 230 140" 
+        fill="none" stroke="#FFFFFF" stroke-width="32" stroke-linecap="round"/>
+        
+  <!-- Barras Horizontais / Persiana (Letra E) -->
+  <rect x="280" y="140" width="112" height="32" rx="16" fill="#F2B78E"/>
+  <rect x="280" y="240" width="112" height="32" rx="16" fill="#F2B78E"/>
+  <rect x="280" y="340" width="112" height="32" rx="16" fill="#F2B78E"/>
+</svg>
