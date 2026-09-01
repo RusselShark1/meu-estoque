@@ -28,15 +28,32 @@ export default function Home() {
     <div className="min-h-screen bg-[#F4F4F4] text-[#333333] font-sans">
       
       {/* Barra de Navegação/Cabeçalho com as cores da Use Screen */}
-      <header className="bg-white border-b border-gray-200 shadow-sm py-5 px-6 md:px-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          {/* Logo simulado com Cinza Chumbo (#3A3B3C) e Laranja Pêssego (#F2B78E) */}
-          <div className="w-10 h-10 rounded-xl bg-[#3A3B3C] flex items-center justify-center text-[#F2B78E] font-extrabold text-lg shadow-sm">
-            US
+      <header className="bg-white border-b border-gray-200 shadow-sm py-4 px-6 md:px-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {/* LOGOTIPO REAL DO SITE (Lido diretamente da pasta public/) */}
+          <div className="h-12 w-auto flex items-center">
+            <img 
+              src="/logotipo.png" 
+              alt="Logotipo Use Screen" 
+              className="h-full object-contain max-h-12"
+              onError={(e) => {
+                // Caso a imagem ainda não esteja na pasta public, mostra o logo reserva para não quebrar a tela
+                e.target.style.display = 'none';
+                document.getElementById('fallback-logo').style.display = 'flex';
+              }}
+            />
+            {/* Logo de segurança (Fallback) caso a imagem não seja encontrada */}
+            <div 
+              id="fallback-logo" 
+              className="hidden w-10 h-10 rounded-xl bg-[#3A3B3C] items-center justify-center text-[#F2B78E] font-extrabold text-lg shadow-sm"
+            >
+              US
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-[#333333]">Use Screen</h1>
-            <p className="text-xs text-gray-500 font-medium">Projeto Integrador II • Controle de Estoque</p>
+          
+          <div className="border-l border-gray-200 pl-4">
+            <h1 className="text-lg font-bold text-[#333333] leading-tight">Controle de Estoque</h1>
+            <p className="text-xs text-gray-500 font-medium">Projeto Integrador II • Use Screen</p>
           </div>
         </div>
         
