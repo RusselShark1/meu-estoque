@@ -1,5 +1,6 @@
-Projeto Integrador II - Sistema de Controle de Estoque Use Screen
-Este é um sistema moderno, rápido e intuitivo desenvolvido para gerenciar o estoque de insumos e materiais da Use Screen. O projeto foi estruturado com foco em usabilidade (Design Thinking) e desenvolvido utilizando tecnologias modernas de desenvolvimento web para garantir excelente performance e uma experiência fluida para o usuário.
+Projeto Integrador II - Univesp - Eixo de Computação - Sistema de Controle de Estoque Use Screen
+Este projeto visa desenvolver uma aplicação de gerenciamento de estoque para uma empresa de persianas da região oeste de são paulo.
+O projeto foi estruturado com foco em usabilidade (Design Thinking) e desenvolvido utilizando tecnologias modernas de desenvolvimento web
 
 🚀 Sobre o Projeto
 O objetivo do sistema é otimizar as operações do dia a dia da Use Screen, fornecendo controle em tempo real sobre a disponibilidade de insumos, facilitando o registro de entradas e saídas e oferecendo inteligência logística por meio de métricas cruciais de controle.
