@@ -1,19 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link'; // Importante para navegar sem recarregar a página!
 
 // Banco de dados simulado inicial de persianas e insumos da Use Screen
 const ESTOQUE_INICIAL = [
-  { id: 'AL-01', nome: 'Perfil de Alumínio Trilho Superior', categoria: 'Componentes', qtd: 45, min: 20, consumoSemanal: 35 },
-  { id: 'TS-05', nome: 'Tecido Screen 3% Cinza (Rolo 2.5m)', categoria: 'Tecidos', qtd: 8, min: 10, consumoSemanal: 25 },
-  { id: 'MT-45', nome: 'Motor Tubular Bivolt 45mm', categoria: 'Motores', qtd: 4, min: 8, consumoSemanal: 12 },
-  { id: 'SP-10', nome: 'Suporte de Fixação Lateral', categoria: 'Componentes', qtd: 150, min: 50, consumoSemanal: 60 },
-  { id: 'CR-02', nome: 'Controle Remoto 5 Canais', categoria: 'Acessórios', qtd: 15, min: 15, consumoSemanal: 18 },
+  { id: 'AL-01', nome: 'Perfil de Alumínio Trilho Superior', categoria: 'Componentes', qtd: 45, min: 20 },
+  { id: 'TS-05', nome: 'Tecido Screen 3% Cinza (Rolo 2.5m)', categoria: 'Tecidos', qtd: 8, min: 10 },
+  { id: 'MT-45', nome: 'Motor Tubular Bivolt 45mm', categoria: 'Motores', qtd: 4, min: 8 },
+  { id: 'SP-10', nome: 'Suporte de Fixação Lateral', categoria: 'Componentes', qtd: 150, min: 50 },
+  { id: 'CR-02', nome: 'Controle Remoto 5 Canais', categoria: 'Acessórios', qtd: 15, min: 15 },
 ];
 
 export default function Home() {
   const [pesquisa, setPesquisa] = useState('');
-  const [estoque, setEstoque] = useState(ESTOQUE_INICIAL);
+  const [estoque, setEstoque] = useState([]); // Começa vazio e carrega do localStorage
+
+  // Carregar os dados salvos no localStorage ao abrir a tela de consulta
+  useEffect(() => {
+    const dadosSalvos = localStorage.getItem('use_screen_estoque');
+    if (dadosSalvos) {
+      setEstoque(JSON.parse(dadosSalvos));
+    } else {
+      setEstoque(ESTOQUE_INICIAL);
+      localStorage.setItem('use_screen_estoque', JSON.stringify(ESTOQUE_INICIAL));
+    }
+  }, []);
 
   // Filtrar itens críticos (quantidade atual menor que o estoque mínimo)
   const itensCriticos = estoque.filter(item => item.qtd < item.min);
@@ -28,7 +40,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#F4F4F4] text-[#333333] font-sans">
       
       {/* Barra de Navegação/Cabeçalho com as cores da Use Screen */}
-      <header className="bg-white border-b border-gray-200 shadow-sm py-4 px-6 md:px-12 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <header className="bg-white border-b border-gray-200 shadow-sm py-4 px-6 md:px-12 flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
         <div className="flex items-center gap-4">
           {/* LOGOTIPO REAL DO SITE (Lido diretamente da pasta public/) */}
           <div className="h-12 w-auto flex items-center">
@@ -37,12 +49,11 @@ export default function Home() {
               alt="Logotipo Use Screen" 
               className="h-full object-contain max-h-12"
               onError={(e) => {
-                // Caso a imagem ainda não esteja na pasta public, mostra o logo reserva para não quebrar a tela
                 e.target.style.display = 'none';
                 document.getElementById('fallback-logo').style.display = 'flex';
               }}
             />
-            {/* Logo de segurança (Fallback) caso a imagem não seja encontrada */}
+            {/* Logo de segurança (Fallback) caso a imagem não exista na pasta public */}
             <div 
               id="fallback-logo" 
               className="hidden w-10 h-10 rounded-xl bg-[#3A3B3C] items-center justify-center text-[#F2B78E] font-extrabold text-lg shadow-sm"
@@ -57,10 +68,20 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Status de Conexão com indicador em verde WhatsApp (#25D366) */}
-        <div className="flex items-center gap-2 bg-[#25D366]/10 px-3.5 py-1.5 rounded-full text-[#25D366] text-xs font-bold w-fit">
+        {/* Botão de Adicionar Itens - Alinhado à esquerda logo após as informações da marca */}
+        <div className="flex items-center">
+          <Link 
+            href="/entrada" 
+            className="bg-[#F2B78E] text-[#333333] hover:bg-[#ebae82] px-4 py-2.5 rounded-xl text-sm font-bold transition duration-200 shadow-sm shadow-[#F2B78E]/20 flex items-center gap-1.5"
+          >
+            ➕ Adicionar Itens
+          </Link>
+        </div>
+        
+        {/* Status de Conexão - Empurrado automaticamente para o canto direito em telas grandes (md:ml-auto) */}
+        <div className="md:ml-auto flex items-center gap-2 bg-[#25D366]/10 px-3.5 py-1.5 rounded-full text-[#25D366] text-xs font-bold w-fit">
           <span className="w-2.5 h-2.5 rounded-full bg-[#25D366] animate-pulse"></span>
-          Sistema Ativo (Vercel)
+          Sistema Ativo 
         </div>
       </header>
 
