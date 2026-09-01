@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "'Use Screen | Controle de Estoque'",
+  title: "Use Screen | Controle de Estoque",
   description: "Sistema de Gerenciamento e Controle de Estoque - Projeto Integrador II",
 };
 
