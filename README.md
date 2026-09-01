@@ -1,4 +1,4 @@
-Projeto Integrador II - Univesp - Eixo de Computação - Sistema de Controle de Estoque Use Screen
+PROJETO INTEGRADOR II - GRUPO 22 - UNIVESP - 2026 - Eixo de Computação - Sistema de Controle de Estoque Use Screen
 Este projeto visa desenvolver uma aplicação de gerenciamento de estoque para uma empresa de persianas da região oeste de são paulo.
 O projeto foi estruturado com foco em usabilidade (Design Thinking) e desenvolvido utilizando tecnologias modernas de desenvolvimento web
 
