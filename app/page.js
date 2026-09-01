@@ -143,13 +143,13 @@ export default function Home() {
                       </td>
                       <td className="py-4 px-6 text-center font-bold text-sm">{item.qtd}</td>
                       <td className="py-4 px-6 text-center text-gray-500 text-sm">{item.min}</td>
-                      <td className="py-4 px-6 text-right">
+                      <td className="py-4 px-6 text-right whitespace-nowrap">
                         {isCritico ? (
-                          <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-100">
+                          <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-100 whitespace-nowrap">
                             Abaixo do Mínimo
                           </span>
                         ) : (
-                          <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold border border-emerald-100">
+                          <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold border border-emerald-100 whitespace-nowrap">
                             Saudável
                           </span>
                         )}
