@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-// Banco de dados simulado inicial de persianas e insumos da Use Screen
+// Banco de dados inicial de fallback (Insumos da Use Screen)
 const ESTOQUE_INICIAL = [
-  { id: 'AL-01', nome: 'Perfil de Alumínio Trilho Superior', categoria: 'Componentes', qtd: 45, min: 20 },
-  { id: 'TS-05', nome: 'Tecido Screen 3% Cinza (Rolo 2.5m)', categoria: 'Tecidos', qtd: 8, min: 10 },
-  { id: 'MT-45', nome: 'Motor Tubular Bivolt 45mm', categoria: 'Motores', qtd: 4, min: 8 },
-  { id: 'SP-10', nome: 'Suporte de Fixação Lateral', categoria: 'Componentes', qtd: 150, min: 50 },
-  { id: 'CR-02', nome: 'Controle Remoto 5 Canais', categoria: 'Acessórios', qtd: 15, min: 15 },
+  { id: 'TS-01', nome: 'Tecido Tela Solar 1%', categoria: 'Tecidos', qtd: 120, min: 30 },
+  { id: 'TB-32', nome: 'Tubo 32 mm (Barra 6m)', categoria: 'Componentes', qtd: 60, min: 18 },
+  { id: 'BI-01', nome: 'Barra Inferior (Barra 6m)', categoria: 'Componentes', qtd: 48, min: 12 },
+  { id: 'CR-10', nome: 'Corrente Bola 10 (Rolo 250m)', categoria: 'Acessórios', qtd: 250, min: 50 },
+  { id: 'KC-01', nome: 'Kit Comando (Catraca + Ponteira)', categoria: 'Componentes', qtd: 25, min: 10 },
 ];
 
 export default function Home() {
@@ -27,10 +27,10 @@ export default function Home() {
     }
   }, []);
 
-  // Filtrar itens críticos
+  // Filtrar itens críticos (abaixo do estoque mínimo)
   const itensCriticos = estoque.filter(item => item.qtd < item.min);
 
-  // Filtrar itens por busca em tempo real
+  // Filtrar itens por busca em tempo real (código ou nome)
   const itensFiltrados = estoque.filter(item =>
     item.nome.toLowerCase().includes(pesquisa.toLowerCase()) ||
     item.id.toLowerCase().includes(pesquisa.toLowerCase())
@@ -39,7 +39,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#F4F4F4] text-[#333333] font-sans">
       
-      {/* Barra de Navegação/Cabeçalho Consistente */}
+      {/* Barra de Navegação / Cabeçalho Consistente */}
       <header className="bg-white border-b border-gray-200 shadow-sm py-4 px-6 md:px-12 flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
         <div className="flex items-center gap-4">
           <div className="h-12 w-auto flex items-center">
@@ -63,20 +63,27 @@ export default function Home() {
           </div>
         </div>
         
-        {/* DOIS BOTÕES DE AÇÃO - Agora criados e alinhados perfeitamente à esquerda */}
-        <div className="flex items-center gap-3">
+        {/* BOTÕES DE NAVEGAÇÃO COMPLETA (Entrada, Saída e Cadastrar) */}
+        <div className="flex items-center gap-2 flex-wrap">
           <Link 
             href="/entrada" 
-            className="bg-[#F2B78E] text-[#333333] hover:bg-[#ebae82] px-4 py-2.5 rounded-xl text-sm font-bold transition duration-200 shadow-sm shadow-[#F2B78E]/20 flex items-center gap-1.5"
+            className="bg-[#F2B78E] text-[#333333] hover:bg-[#ebae82] px-3.5 py-2.5 rounded-xl text-xs font-bold transition duration-200 shadow-sm flex items-center gap-1.5"
           >
-            ➕ Adicionar Itens
+            ➕ Entrada
           </Link>
           
           <Link 
             href="/saida" 
-            className="bg-[#3A3B3C] text-white hover:bg-[#333333] px-4 py-2.5 rounded-xl text-sm font-bold transition duration-200 flex items-center gap-1.5 shadow-sm"
+            className="bg-[#3A3B3C] text-white hover:bg-[#333333] px-3.5 py-2.5 rounded-xl text-xs font-bold transition duration-200 flex items-center gap-1.5 shadow-sm"
           >
-            ➖ Registrar Baixa
+            ➖ Saída (O.P.)
+          </Link>
+
+          <Link 
+            href="/cadastro" 
+            className="bg-white text-[#333333] hover:bg-gray-50 border border-gray-200 px-3.5 py-2.5 rounded-xl text-xs font-bold transition duration-200 flex items-center gap-1.5 shadow-sm"
+          >
+            📝 Cadastrar Insumo
           </Link>
         </div>
         
@@ -107,14 +114,14 @@ export default function Home() {
           <h2 className="text-lg font-bold text-[#333333]">🔍 Consulta Rápida de Produtos</h2>
           <input
             type="text"
-            placeholder="Buscar por código (ex: TS-05) ou nome do item..."
-            className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3.5 text-[#333333] placeholder-gray-400 focus:outline-none focus:border-[#F2B78E] focus:ring-2 focus:ring-[#F2B78E]/30 transition duration-200"
+            placeholder="Buscar por código (ex: TS-01) ou nome do item..."
+            className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3.5 text-[#333333] placeholder-gray-400 focus:outline-none focus:border-[#F2B78E] focus:ring-2 focus:ring-[#F2B78E]/30 transition duration-200 text-sm"
             value={pesquisa}
             onChange={(e) => setPesquisa(e.target.value)}
           />
         </section>
 
-        {/* Tabela de Insumos */}
+        {/* Tabela de Inventário */}
         <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100 bg-white">
             <h3 className="font-bold text-lg text-[#333333]">Inventário de Insumos</h3>
@@ -128,7 +135,7 @@ export default function Home() {
                   <th className="py-3.5 px-6">Categoria</th>
                   <th className="py-3.5 px-6 text-center">Qtd Atual</th>
                   <th className="py-3.5 px-6 text-center">Estoque Mín.</th>
-                  <th className="py-3.5 px-6 text-right col-status">Status</th>
+                  <th className="py-3.5 px-6 text-right">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
