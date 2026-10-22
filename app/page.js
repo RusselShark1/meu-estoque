@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link'; // Importante para navegar sem recarregar a página!
+import Link from 'next/link';
 
 // Banco de dados simulado inicial de persianas e insumos da Use Screen
 const ESTOQUE_INICIAL = [
@@ -14,9 +14,9 @@ const ESTOQUE_INICIAL = [
 
 export default function Home() {
   const [pesquisa, setPesquisa] = useState('');
-  const [estoque, setEstoque] = useState([]); // Começa vazio e carrega do localStorage
+  const [estoque, setEstoque] = useState([]);
 
-  // Carregar os dados salvos no localStorage ao abrir a tela de consulta
+  // Carrega os dados salvos no localStorage
   useEffect(() => {
     const dadosSalvos = localStorage.getItem('use_screen_estoque');
     if (dadosSalvos) {
@@ -27,10 +27,10 @@ export default function Home() {
     }
   }, []);
 
-  // Filtrar itens críticos (quantidade atual menor que o estoque mínimo)
+  // Filtrar itens críticos
   const itensCriticos = estoque.filter(item => item.qtd < item.min);
 
-  // Filtrar itens por busca em tempo real (código ou nome)
+  // Filtrar itens por busca em tempo real
   const itensFiltrados = estoque.filter(item =>
     item.nome.toLowerCase().includes(pesquisa.toLowerCase()) ||
     item.id.toLowerCase().includes(pesquisa.toLowerCase())
@@ -39,10 +39,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#F4F4F4] text-[#333333] font-sans">
       
-      {/* Barra de Navegação/Cabeçalho com as cores da Use Screen */}
+      {/* Barra de Navegação/Cabeçalho Consistente */}
       <header className="bg-white border-b border-gray-200 shadow-sm py-4 px-6 md:px-12 flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
         <div className="flex items-center gap-4">
-          {/* LOGOTIPO REAL DO SITE (Lido diretamente da pasta public/) */}
           <div className="h-12 w-auto flex items-center">
             <img 
               src="/logotipo.png" 
@@ -53,11 +52,7 @@ export default function Home() {
                 document.getElementById('fallback-logo').style.display = 'flex';
               }}
             />
-            {/* Logo de segurança (Fallback) caso a imagem não exista na pasta public */}
-            <div 
-              id="fallback-logo" 
-              className="hidden w-10 h-10 rounded-xl bg-[#3A3B3C] items-center justify-center text-[#F2B78E] font-extrabold text-lg shadow-sm"
-            >
+            <div id="fallback-logo" className="hidden w-10 h-10 rounded-xl bg-[#3A3B3C] items-center justify-center text-[#F2B78E] font-extrabold text-lg">
               US
             </div>
           </div>
@@ -68,27 +63,34 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Botão de Adicionar Itens - Alinhado à esquerda logo após as informações da marca */}
-        <div className="flex items-center">
+        {/* DOIS BOTÕES DE AÇÃO - Agora criados e alinhados perfeitamente à esquerda */}
+        <div className="flex items-center gap-3">
           <Link 
             href="/entrada" 
             className="bg-[#F2B78E] text-[#333333] hover:bg-[#ebae82] px-4 py-2.5 rounded-xl text-sm font-bold transition duration-200 shadow-sm shadow-[#F2B78E]/20 flex items-center gap-1.5"
           >
             ➕ Adicionar Itens
           </Link>
+          
+          <Link 
+            href="/saida" 
+            className="bg-[#3A3B3C] text-white hover:bg-[#333333] px-4 py-2.5 rounded-xl text-sm font-bold transition duration-200 flex items-center gap-1.5 shadow-sm"
+          >
+            ➖ Registrar Baixa
+          </Link>
         </div>
         
-        {/* Status de Conexão - Empurrado automaticamente para o canto direito em telas grandes (md:ml-auto) */}
+        {/* Status de Conexão */}
         <div className="md:ml-auto flex items-center gap-2 bg-[#25D366]/10 px-3.5 py-1.5 rounded-full text-[#25D366] text-xs font-bold w-fit">
           <span className="w-2.5 h-2.5 rounded-full bg-[#25D366] animate-pulse"></span>
-          Sistema Ativo 
+          Sistema Ativo (Vercel)
         </div>
       </header>
 
       {/* Conteúdo Principal */}
       <main className="max-w-7xl mx-auto p-6 md:p-12 space-y-8">
         
-        {/* Central de Atenção: Painel de Alertas Rápidos */}
+        {/* Painel de Alertas Rápidos */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total de Itens Cadastrados</h2>
@@ -100,7 +102,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Barra de Busca Inteligente com foco na cor Pêssego (#F2B78E) */}
+        {/* Busca */}
         <section className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
           <h2 className="text-lg font-bold text-[#333333]">🔍 Consulta Rápida de Produtos</h2>
           <input
@@ -126,7 +128,7 @@ export default function Home() {
                   <th className="py-3.5 px-6">Categoria</th>
                   <th className="py-3.5 px-6 text-center">Qtd Atual</th>
                   <th className="py-3.5 px-6 text-center">Estoque Mín.</th>
-                  <th className="py-3.5 px-6 text-right">Status</th>
+                  <th className="py-3.5 px-6 text-right col-status">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -137,7 +139,7 @@ export default function Home() {
                       <td className="py-4 px-6 font-mono font-bold text-xs text-[#3A3B3C]">{item.id}</td>
                       <td className="py-4 px-6 font-semibold text-[#333333] text-sm">{item.nome}</td>
                       <td className="py-4 px-6">
-                        <span className="bg-[#F4F4F4] text-[#3A3B3C] px-3 py-1 rounded-full text-xs font-semibold">
+                        <span className="bg-[#F4F4F4] text-[#3A3A3C] px-3 py-1 rounded-full text-xs font-semibold">
                           {item.categoria}
                         </span>
                       </td>
