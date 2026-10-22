@@ -81,7 +81,7 @@ export default function CadastroInsumos() {
             </div>
             <div className="border-l border-gray-200 pl-4">
               <h1 className="text-base font-bold text-[#333333]">Cadastrar Novo Insumo</h1>
-              <p className="text-xs text-gray-500">Projeto Integrador II • Use Screen</p>
+              <p className="text-xs text-gray-500">Projeto Integrador II • Use Screen • Grupo 22 - 2026</p>
             </div>
           </div>
 

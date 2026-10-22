@@ -56,7 +56,7 @@ export default function Home() {
             
             <div className="border-l border-gray-200 pl-4">
               <h1 className="text-base font-bold text-[#333333]">Controle de Estoque</h1>
-              <p className="text-xs text-gray-500">Projeto Integrador II • Use Screen</p>
+              <p className="text-xs text-gray-500">Projeto Integrador II • Use Screen • Grupo 22 - 2026 </p>
             </div>
           </div>
 
@@ -98,7 +98,7 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total de Insumos</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total de Itens</p>
               <p className="text-3xl font-black text-[#333333] mt-1">{carregando ? '...' : estoque.length}</p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-xl">📦</div>
@@ -106,7 +106,7 @@ export default function Home() {
 
           <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm border-l-4 border-l-red-500 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Itens Críticos (Repor)</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Itens Críticos </p>
               <p className="text-3xl font-black text-red-500 mt-1">{carregando ? '...' : itensCriticos.length}</p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-xl">⚠️</div>
@@ -141,7 +141,7 @@ export default function Home() {
               <thead>
                 <tr className="bg-[#F4F4F4] text-xs font-bold text-gray-500 uppercase tracking-wider">
                   <th className="py-3 px-6">Código</th>
-                  <th className="py-3 px-6">Insumo / Material</th>
+                  <th className="py-3 px-6"> Material</th>
                   <th className="py-3 px-6">Categoria</th>
                   <th className="py-3 px-6 text-center">Saldo Atual</th>
                   <th className="py-3 px-6 text-center">Estoque Mín.</th>

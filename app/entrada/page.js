@@ -93,7 +93,7 @@ export default function EntradaInsumos() {
             </div>
             <div className="border-l border-gray-200 pl-4">
               <h1 className="text-base font-bold text-[#333333]">Entrada de Materiais</h1>
-              <p className="text-xs text-gray-500">Projeto Integrador II • Use Screen</p>
+              <p className="text-xs text-gray-500">Projeto Integrador II • Use Screen • Grupo 22 - 2026</p>
             </div>
           </div>
 
@@ -130,7 +130,7 @@ export default function EntradaInsumos() {
 
         <div className="bg-white p-8 rounded-2xl border border-gray-200/80 shadow-sm space-y-6">
           <div>
-            <h2 className="text-lg font-bold text-[#333333]">📥 Recebimento de Insumos no Almoxarifado</h2>
+            <h2 className="text-lg font-bold text-[#333333]">📥 Recebimento de Itens no Almoxarifado</h2>
             <p className="text-xs text-gray-500">Acrescente saldo ao estoque físico informando a quantidade em milímetros ou unidades.</p>
           </div>
 
@@ -138,7 +138,7 @@ export default function EntradaInsumos() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-gray-600 block mb-1">Selecione o Insumo:</label>
+                <label className="text-xs font-bold text-gray-600 block mb-1">Selecione o Item:</label>
                 <select 
                   className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#F2B78E]"
                   value={itemSelecionado}
