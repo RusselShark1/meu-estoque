@@ -130,7 +130,7 @@ export default function EntradaInsumos() {
 
         <div className="bg-white p-8 rounded-2xl border border-gray-200/80 shadow-sm space-y-6">
           <div>
-            <h2 className="text-lg font-bold text-[#333333]">📥 Recebimento de Itens no Almoxarifado</h2>
+            <h2 className="text-lg font-bold text-[#333333]"> Recebimento de Itens no Almoxarifado</h2>
             <p className="text-xs text-gray-500">Acrescente saldo ao estoque físico informando a quantidade em milímetros ou unidades.</p>
           </div>
 
