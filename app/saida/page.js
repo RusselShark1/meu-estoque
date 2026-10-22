@@ -283,7 +283,7 @@ export default function SaidaProducao() {
               type="submit"
               className="w-full bg-[#F2B78E] text-[#333333] hover:bg-[#ebae82] py-3.5 rounded-xl font-bold transition duration-200 text-sm shadow-sm shadow-[#F2B78E]/30"
             >
-              🏭 Confirmar Baixa da O.P. e Abater Insumos
+              Confirmar Baixa da O.P.
             </button>
           </form>
         </div>

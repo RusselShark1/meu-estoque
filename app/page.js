@@ -69,21 +69,21 @@ export default function Home() {
             href="/entrada" 
             className="bg-[#F2B78E] text-[#333333] hover:bg-[#ebae82] px-3.5 py-2.5 rounded-xl text-xs font-bold transition duration-200 shadow-sm flex items-center gap-1.5"
           >
-            ➕ Entrada
+             Entrada
           </Link>
           
           <Link 
             href="/saida" 
             className="bg-[#3A3B3C] text-white hover:bg-[#333333] px-3.5 py-2.5 rounded-xl text-xs font-bold transition duration-200 flex items-center gap-1.5 shadow-sm"
           >
-            ➖ Saída (O.P.)
+            Saída 
           </Link>
 
           <Link 
             href="/cadastro" 
             className="bg-white text-[#333333] hover:bg-gray-50 border border-gray-200 px-3.5 py-2.5 rounded-xl text-xs font-bold transition duration-200 flex items-center gap-1.5 shadow-sm"
           >
-            📝 Cadastrar Insumo
+            Cadastrar Insumo
           </Link>
         </div>
         
