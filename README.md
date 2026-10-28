@@ -94,30 +94,11 @@ Cinza Quase Preto (#333333): Cor para textos de leitura, títulos e dados numér
 Cinza Neutro Claro (#F4F4F4): Fundo principal da aplicação e de cartões de informações.
 Verde Status (#25D366): Indicador de sistema ativo e situação de estoque saudável.
 Vermelho Alerta (#EF4444): Destaque visual para insumos que atingiram o limite de Estoque Mínimo.
-7. Instruções de Instalação e Execução Local
-Pré-requisitos
-Node.js v18.0.0 ou superior instalado.
-Gerenciador de pacotes npm ativo.
-Passo a Passo
-Clonar o Repositório:
 
-git clone https://github.com/SEU-USUARIO/meu-estoque.git
-cd meu-estoque
-Instalar as Dependências:
-
-npm install
-Configurar as Variáveis de Ambiente: Crie um arquivo .env.local na raiz do projeto contendo a chave de conexão do banco de dados:
-
-DATABASE_URL="postgresql://usuario:senha@ep-xyz.us-east-2.aws.neon.tech/neondatabase?sslmode=require"
-Executar o Servidor de Desenvolvimento:
-
-npm run dev
-Acessar a Aplicação: Abra o navegador no endereço http://localhost:3000.
-
-8. Publicação em Nuvem (Deploy)
+7. Publicação em Nuvem (Deploy)
 A hospedagem em produção é realizada na plataforma Vercel com deploy contínuo integrado ao GitHub:
 
 A cada commit enviado para a branch principal (git push origin main), a Vercel aciona uma compilação automatizada.
 O sistema é publicado em ambiente serverless de alta performance.
-9. Licença e Créditos
+8. Licença e Créditos
 Projeto desenvolvido como parte do Projeto Integrador II, aplicado aos processos industriais da Use Screen — Cortinas e Persianas.
