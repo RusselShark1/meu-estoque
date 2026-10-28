@@ -1,0 +1,1369 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+app/
+  api/
+    estoque/
+      entrada/
+        route.js
+      saida/
+        route.js
+      route.js
+    teste-db/
+      route.js
+  cadastro/
+    page.js
+  entrada/
+    page.js
+  saida/
+    page.js
+  globals.css
+  icon.svg
+  layout.js
+  page.js
+lib/
+  db.js
+public/
+  file.svg
+  globe.svg
+  logotipo.png
+  next.svg
+  vercel.svg
+  window.svg
+.gitignore
+eslint.config.mjs
+jsconfig.json
+next.config.mjs
+package.json
+postcss.config.mjs
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="app/api/estoque/entrada/route.js">
+import { neon } from '@neondatabase/serverless';
+import { NextResponse } from 'next/server';
+
+export async function POST(request) {
+  try {
+    const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+    
+    if (!connectionString) {
+      return NextResponse.json({ error: "String de conexão não encontrada" }, { status: 500 });
+    }
+
+    const body = await request.json();
+    
+    // Aceita tanto 'id' quanto 'codigo' e várias opções para a quantidade
+    const id = body.id || body.codigo;
+    const qtd = body.qtd !== undefined ? body.qtd : (body.quantidade !== undefined ? body.quantidade : body.qtdAdicionar);
+
+    if (!id || qtd === undefined) {
+      return NextResponse.json({ error: 'ID/Código e quantidade são obrigatórios.' }, { status: 400 });
+    }
+
+    const sql = neon(connectionString);
+
+    // Soma a quantidade nova ao saldo atual no banco
+    await sql`
+      UPDATE estoque 
+      SET qtd = qtd + ${Number(qtd)}
+      WHERE id = ${id};
+    `;
+
+    return NextResponse.json({ success: true, message: 'Entrada registrada com sucesso!' }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+</file>
+
+<file path="app/api/estoque/saida/route.js">
+import { sql } from '@/lib/db';
+import { NextResponse } from 'next/server';
+
+export async function POST(request) {
+  try {
+    const body = await request.json();
+
+    // MODO 1: Saída Avulsa / Direta de um Insumo Específico
+    if (body.id && body.quantidade) {
+      const { id, quantidade } = body;
+      const qtdNum = Number(quantidade);
+
+      const result = await sql`
+        UPDATE estoque 
+        SET qtd = qtd - ${qtdNum} 
+        WHERE id = ${id} AND qtd >= ${qtdNum}
+        RETURNING *;
+      `;
+
+      if (result.length === 0) {
+        return NextResponse.json(
+          { error: 'Saldo insuficiente em estoque ou item não encontrado.' },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json({ message: 'Retirada realizada com sucesso!' });
+    }
+
+    // MODO 2: Saída por Ordem de Produção (Calculadora de Lote)
+    if (body.mapaConsumo) {
+      const { mapaConsumo } = body;
+
+      for (const [id, quantidadeMM] of Object.entries(mapaConsumo)) {
+        const qtdNum = Number(quantidadeMM);
+        if (qtdNum > 0) {
+          await sql`
+            UPDATE estoque 
+            SET qtd = qtd - ${qtdNum} 
+            WHERE id = ${id} AND qtd >= ${qtdNum};
+          `;
+        }
+      }
+
+      return NextResponse.json({ message: 'Baixa de O.P. realizada com sucesso!' });
+    }
+
+    return NextResponse.json({ error: 'Dados inválidos para retirada.' }, { status: 400 });
+  } catch (error) {
+    console.error('Erro na API de saída:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+</file>
+
+<file path="app/api/estoque/route.js">
+import { neon } from '@neondatabase/serverless';
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  try {
+    const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+    
+    if (!connectionString) {
+      return NextResponse.json({ error: "String de conexão não encontrada" }, { status: 500 });
+    }
+
+    const sql = neon(connectionString);
+    const itens = await sql`SELECT * FROM estoque ORDER BY categoria, nome;`;
+    return NextResponse.json(itens, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(request) {
+  try {
+    const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+    
+    if (!connectionString) {
+      return NextResponse.json({ error: "String de conexão não encontrada" }, { status: 500 });
+    }
+
+    const body = await request.json();
+    const { id, nome, categoria, qtd, min, unidade } = body;
+
+    if (!id || !nome || categoria === undefined || qtd === undefined) {
+      return NextResponse.json({ error: 'Campos obrigatórios faltando.' }, { status: 400 });
+    }
+
+    const sql = neon(connectionString);
+
+    await sql`
+      INSERT INTO estoque (id, nome, categoria, qtd, min, unidade)
+      VALUES (${id}, ${nome}, ${categoria}, ${qtd}, ${min}, ${unidade})
+      ON CONFLICT (id) 
+      DO UPDATE SET 
+        nome = EXCLUDED.nome,
+        categoria = EXCLUDED.categoria,
+        qtd = EXCLUDED.qtd,
+        min = EXCLUDED.min,
+        unidade = EXCLUDED.unidade;
+    `;
+
+    return NextResponse.json({ success: true, message: 'Insumo salvo com sucesso!' }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+</file>
+
+<file path="app/api/teste-db/route.js">
+import { neon } from '@neondatabase/serverless';
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  try {
+    const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+    
+    if (!connectionString) {
+      return NextResponse.json({ success: false, erro: "Variável POSTGRES_URL não encontrada no .env.local" }, { status: 500 });
+    }
+
+    const sql = neon(connectionString);
+    const response = await sql`SELECT NOW();`;
+    
+    return NextResponse.json({ 
+      success: true, 
+      mensagem: "Conexão com o Neon realizada com sucesso!",
+      horarioBanco: response[0] 
+    }, { status: 200 });
+
+  } catch (error) {
+    return NextResponse.json({ 
+      success: false, 
+      erroDetalhado: error.message 
+    }, { status: 500 });
+  }
+}
+</file>
+
+<file path="app/icon.svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Fundo Circular/Quadrado -->
+  <rect width="512" height="512" rx="100" fill="#3A3B3C"/>
+  
+  <!-- Letra U -->
+  <path d="M 120 140 L 120 310 C 120 350 145 372 175 372 C 205 372 230 350 230 310 L 230 140" 
+        fill="none" stroke="#FFFFFF" stroke-width="32" stroke-linecap="round"/>
+        
+  <!-- Barras Horizontais / Persiana (Letra E) -->
+  <rect x="280" y="140" width="112" height="32" rx="16" fill="#F2B78E"/>
+  <rect x="280" y="240" width="112" height="32" rx="16" fill="#F2B78E"/>
+  <rect x="280" y="340" width="112" height="32" rx="16" fill="#F2B78E"/>
+</svg>
+</file>
+
+<file path="lib/db.js">
+import { neon } from '@neondatabase/serverless';
+
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error("A string de conexão do banco de dados não foi encontrada nas variáveis de ambiente.");
+}
+
+export const sql = neon(connectionString);
+</file>
+
+<file path="public/file.svg">
+<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
+</file>
+
+<file path="public/globe.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+</file>
+
+<file path="public/next.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+</file>
+
+<file path="public/vercel.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+</file>
+
+<file path="public/window.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
+
+<file path="eslint.config.mjs">
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;
+</file>
+
+<file path="jsconfig.json">
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}
+</file>
+
+<file path="next.config.mjs">
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+</file>
+
+<file path="postcss.config.mjs">
+const config = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+
+export default config;
+</file>
+
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+.vercel
+.env*
+</file>
+
+<file path="package.json">
+{
+  "name": "meu-estoque",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "@vercel/postgres": "^0.10.0",
+    "next": "16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.4",
+    "tailwindcss": "^4"
+  }
+}
+</file>
+
+<file path="app/cadastro/page.js">
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+
+export default function CadastroInsumos() {
+  const [codigo, setCodigo] = useState('');
+  const [nome, setNome] = useState('');
+  const [categoria, setCategoria] = useState('Componentes');
+  const [unidade, setUnidade] = useState('mm');
+  const [qtdInicial, setQtdInicial] = useState('');
+  const [estoqueMin, setEstoqueMin] = useState('');
+
+  const [sucessoMsg, setSucessoMsg] = useState('');
+  const [erroMsg, setErroMsg] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  const handleCadastrar = async (e) => {
+    e.preventDefault();
+    setErroMsg('');
+    setSucessoMsg('');
+
+    if (!codigo.trim() || !nome.trim() || !qtdInicial || !estoqueMin) {
+      setErroMsg('Por favor, preencha todos os campos.');
+      return;
+    }
+
+    setEnviando(true);
+
+    try {
+      const res = await fetch('/api/estoque', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: codigo.trim().toUpperCase(),
+          nome: nome.trim(),
+          categoria,
+          qtd: Number(qtdInicial),
+          min: Number(estoqueMin),
+          unidade
+        })
+      });
+
+      if (res.ok) {
+        setSucessoMsg(`Insumo "${nome}" (${codigo.toUpperCase()}) cadastrado com sucesso!`);
+        setCodigo('');
+        setNome('');
+        setCategoria('Componentes');
+        setUnidade('mm');
+        setQtdInicial('');
+        setEstoqueMin('');
+      } else {
+        setErroMsg('Erro ao salvar o insumo no banco de dados. Verifique se o código já existe.');
+      }
+    } catch (err) {
+      setErroMsg('Falha de conexão ao cadastrar o insumo.');
+    } finally {
+      setEnviando(false);
+      setTimeout(() => setSucessoMsg(''), 5000);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F4F4F4] text-[#333333] font-sans">
+      
+      {/* Cabeçalho */}
+      <header className="bg-white border-b border-gray-200 shadow-sm py-4 px-6 md:px-12">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <img 
+              src="/logotipo.png" 
+              alt="Use Screen" 
+              className="h-10 w-auto object-contain"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                document.getElementById('fallback-logo').style.display = 'flex';
+              }}
+            />
+            <div id="fallback-logo" className="hidden w-10 h-10 rounded-xl bg-[#3A3B3C] items-center justify-center text-[#F2B78E] font-bold text-base">
+              US
+            </div>
+            <div className="border-l border-gray-200 pl-4">
+              <h1 className="text-base font-bold text-[#333333]">Cadastrar Novo Insumo</h1>
+              <p className="text-xs text-gray-500">Projeto Integrador II • Use Screen • Grupo 22 - 2026</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/" 
+              className="bg-[#3A3B3C] text-white hover:bg-[#333333] px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              🔍 Consultar
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Form de Cadastro */}
+      <main className="max-w-4xl mx-auto p-6 md:p-10 space-y-6">
+        
+        {erroMsg && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm font-bold shadow-sm">
+            ⚠️ {erroMsg}
+          </div>
+        )}
+        {sucessoMsg && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl text-sm font-bold shadow-sm">
+            ✅ {sucessoMsg}
+          </div>
+        )}
+
+        <div className="bg-white p-8 rounded-2xl border border-gray-200/80 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-lg font-bold text-[#333333]">📝 Inclusão de Novo Material no Catálogo</h2>
+            <p className="text-xs text-gray-500">Cadastre um novo item informando as dimensões padrão e estoque mínimo de segurança.</p>
+          </div>
+
+          <form onSubmit={handleCadastrar} className="space-y-6">
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs font-bold text-gray-600 block mb-1">Código do Insumo:</label>
+                <input 
+                  type="text"
+                  placeholder="Ex: TS-02"
+                  className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono font-bold focus:outline-none focus:border-[#F2B78E]"
+                  value={codigo}
+                  onChange={(e) => setCodigo(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-600 block mb-1">Categoria:</label>
+                <select 
+                  className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#F2B78E]"
+                  value={categoria}
+                  onChange={(e) => setCategoria(e.target.value)}
+                >
+                  <option value="Tecidos">Tecidos</option>
+                  <option value="Componentes">Componentes</option>
+                  <option value="Acessórios">Acessórios</option>
+                  <option value="Motores">Motores</option>
+                  <option value="Opcionais">Opcionais</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-600 block mb-1">Unidade de Medida:</label>
+                <select 
+                  className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#F2B78E]"
+                  value={unidade}
+                  onChange={(e) => setUnidade(e.target.value)}
+                >
+                  <option value="mm">Milímetros (mm)</option>
+                  <option value="un">Unidades (un)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-gray-600 block mb-1">Nome do Insumo:</label>
+              <input 
+                type="text"
+                placeholder="Ex: Tecido Screen 5% Bege"
+                className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#F2B78E]"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-gray-600 block mb-1">
+                  Quantidade Inicial ({unidade}):
+                </label>
+                <input 
+                  type="number"
+                  placeholder={unidade === 'mm' ? 'Ex: 30000 (30m)' : 'Ex: 20'}
+                  className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#F2B78E]"
+                  value={qtdInicial}
+                  onChange={(e) => setQtdInicial(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-600 block mb-1">
+                  Estoque Mínimo ({unidade}):
+                </label>
+                <input 
+                  type="number"
+                  placeholder={unidade === 'mm' ? 'Ex: 10000 (10m)' : 'Ex: 5'}
+                  className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#F2B78E]"
+                  value={estoqueMin}
+                  onChange={(e) => setEstoqueMin(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <button 
+              type="submit"
+              disabled={enviando}
+              className="w-full bg-[#F2B78E] text-[#333333] hover:bg-[#ebae82] py-3.5 rounded-xl font-bold transition text-sm shadow-sm disabled:opacity-50"
+            >
+              {enviando ? 'Salvando...' : '➕ Salvar e Cadastrar Insumo'}
+            </button>
+
+          </form>
+        </div>
+
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="app/globals.css">
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+</file>
+
+<file path="app/layout.js">
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata = {
+  title: "Use Screen | Controle de Estoque",
+  description: "Sistema de Gerenciamento e Controle de Estoque - Projeto Integrador II",
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col">{children}</body>
+    </html>
+  );
+}
+</file>
+
+<file path="app/entrada/page.js">
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+
+export default function EntradaInsumos() {
+  const [estoque, setEstoque] = useState([]);
+  const [itemSelecionado, setItemSelecionado] = useState('');
+  const [qtdAdicionar, setQtdAdicionar] = useState('');
+  const [documento, setDocumento] = useState('');
+
+  const [sucessoMsg, setSucessoMsg] = useState('');
+  const [erroMsg, setErroMsg] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    async function carregar() {
+      try {
+        const res = await fetch('/api/estoque');
+        if (res.ok) {
+          const dados = await res.json();
+          setEstoque(dados);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar insumos:', err);
+      }
+    }
+    carregar();
+  }, []);
+
+  const itemAtual = estoque.find(i => i.id === itemSelecionado);
+
+  const handleEntrada = async (e) => {
+    e.preventDefault();
+    setErroMsg('');
+    setSucessoMsg('');
+
+    if (!itemSelecionado || !qtdAdicionar || Number(qtdAdicionar) <= 0) {
+      setErroMsg('Selecione um insumo e informe uma quantidade válida.');
+      return;
+    }
+
+    setEnviando(true);
+
+    try {
+      const res = await fetch('/api/estoque/entrada', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: itemSelecionado,
+          quantidade: Number(qtdAdicionar),
+          documento
+        })
+      });
+
+      if (res.ok) {
+        setSucessoMsg(`Entrada de ${qtdAdicionar} ${itemAtual?.unidade || 'mm'} realizada com sucesso para "${itemAtual?.nome}"!`);
+        setItemSelecionado('');
+        setQtdAdicionar('');
+        setDocumento('');
+
+        const resAtual = await fetch('/api/estoque');
+        if (resAtual.ok) setEstoque(await resAtual.json());
+      } else {
+        setErroMsg('Erro ao registrar a entrada no banco de dados.');
+      }
+    } catch (err) {
+      setErroMsg('Falha de conexão com o servidor.');
+    } finally {
+      setEnviando(false);
+      setTimeout(() => setSucessoMsg(''), 5000);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F4F4F4] text-[#333333] font-sans">
+      
+      {/* Cabeçalho */}
+      <header className="bg-white border-b border-gray-200 shadow-sm py-4 px-6 md:px-12">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <img 
+              src="/logotipo.png" 
+              alt="Use Screen" 
+              className="h-10 w-auto object-contain"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                document.getElementById('fallback-logo').style.display = 'flex';
+              }}
+            />
+            <div id="fallback-logo" className="hidden w-10 h-10 rounded-xl bg-[#3A3B3C] items-center justify-center text-[#F2B78E] font-bold text-base">
+              US
+            </div>
+            <div className="border-l border-gray-200 pl-4">
+              <h1 className="text-base font-bold text-[#333333]">Entrada de Materiais</h1>
+              <p className="text-xs text-gray-500">Projeto Integrador II • Use Screen • Grupo 22 - 2026</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/" 
+              className="bg-[#3A3B3C] text-white hover:bg-[#333333] px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              🔍 Consultar
+            </Link>
+            <Link 
+              href="/saida" 
+              className="bg-white text-[#333333] hover:bg-gray-50 border border-gray-200 px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              ➖ Saída (O.P.)
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Form de Entrada */}
+      <main className="max-w-4xl mx-auto p-6 md:p-10 space-y-6">
+        
+        {erroMsg && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm font-bold shadow-sm">
+            ⚠️ {erroMsg}
+          </div>
+        )}
+        {sucessoMsg && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl text-sm font-bold shadow-sm">
+            ✅ {sucessoMsg}
+          </div>
+        )}
+
+        <div className="bg-white p-8 rounded-2xl border border-gray-200/80 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-lg font-bold text-[#333333]"> Recebimento de Itens no Almoxarifado</h2>
+            <p className="text-xs text-gray-500">Acrescente saldo ao estoque físico informando a quantidade em milímetros ou unidades.</p>
+          </div>
+
+          <form onSubmit={handleEntrada} className="space-y-6">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-gray-600 block mb-1">Selecione o Item:</label>
+                <select 
+                  className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#F2B78E]"
+                  value={itemSelecionado}
+                  onChange={(e) => setItemSelecionado(e.target.value)}
+                >
+                  <option value="">-- Escolha o item --</option>
+                  {estoque.map(item => (
+                    <option key={item.id} value={item.id}>
+                      [{item.id}] {item.nome} — Saldo: {item.qtd} {item.unidade || 'mm'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-600 block mb-1">Nº Nota Fiscal / Doc. (Opcional):</label>
+                <input 
+                  type="text"
+                  placeholder="Ex: NF-10452"
+                  className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#F2B78E]"
+                  value={documento}
+                  onChange={(e) => setDocumento(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {itemAtual && (
+              <div className="bg-[#F2B78E]/15 border border-[#F2B78E]/40 p-4 rounded-xl flex items-center justify-between text-xs font-bold text-[#333333]">
+                <span>Insumo: <strong>{itemAtual.nome}</strong></span>
+                <span>Saldo Atual: <strong className="bg-white px-2 py-0.5 rounded shadow-xs">{itemAtual.qtd} {itemAtual.unidade || 'mm'}</strong></span>
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs font-bold text-gray-600 block mb-1">
+                Quantidade a Adicionar {itemAtual ? `(${itemAtual.unidade || 'mm'})` : '(mm ou un)'}:
+              </label>
+              <input 
+                type="number"
+                placeholder={itemAtual?.unidade === 'un' ? 'Ex: 50' : 'Ex: 6000 (para 6m de barra)'}
+                className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#F2B78E] font-bold"
+                value={qtdAdicionar}
+                onChange={(e) => setQtdAdicionar(e.target.value)}
+              />
+            </div>
+
+            <button 
+              type="submit"
+              disabled={enviando}
+              className="w-full bg-[#F2B78E] text-[#333333] hover:bg-[#ebae82] py-3.5 rounded-xl font-bold transition text-sm shadow-sm disabled:opacity-50"
+            >
+              {enviando ? 'Registrando...' : '➕ Confirmar Entrada no Estoque'}
+            </button>
+
+          </form>
+        </div>
+
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="README.md">
+PROJETO INTEGRADOR II - GRUPO 22 - UNIVESP - 2026 - Eixo de Computação - Sistema de Controle de Estoque Use Screen
+Este projeto visa desenvolver uma aplicação de gerenciamento de estoque para uma empresa de persianas da região oeste de são paulo.
+O projeto foi estruturado com foco em usabilidade (Design Thinking) e desenvolvido utilizando tecnologias modernas de desenvolvimento web
+
+🚀 Sobre o Projeto
+O objetivo do sistema é otimizar as operações do dia a dia da Use Screen, fornecendo controle em tempo real sobre a disponibilidade de insumos, facilitando o registro de entradas e saídas e oferecendo inteligência logística por meio de métricas cruciais de controle.
+
+📱 Telas do Sistema
+O aplicativo é dividido em 4 telas integradas que cobrem todo o fluxo operacional de estoque:
+
+Tela 1 — Consulta de Estoque (Painel Principal):
+
+Listagem completa de insumos cadastrados.
+Filtros dinâmicos de busca (por nome, código ou status).
+Alertas visuais claros para itens em nível crítico de estoque.
+Tela 2 — Entrada de Insumos:
+
+Registro rápido de recebimento de novos lotes de materiais.
+Cadastro de fornecedor, quantidade e data de validade.
+Atualização imediata do saldo total de estoque.
+Tela 3 — Saída de Materiais:
+
+Registro simplificado de consumo e baixas de estoque para produção.
+Histórico detalhado de saídas para auditoria interna.
+Prevenção de rupturas através de avisos de quantidade indisponível.
+Tela 4 — Relatórios e Métricas Logísticas:
+
+Visão analítica de dados fundamentais de armazenamento.
+Gráficos e indicadores de Giro de Estoque, Cobertura e taxas de Ruptura.
+Suporte visual na tomada de decisões de compra.
+🛠️ Tecnologias Utilizadas
+Este projeto foi construído utilizando as melhores ferramentas e práticas do ecossistema de desenvolvimento moderno:
+
+Next.js (App Router): Framework React moderno focado em performance, excelente estrutura de pastas e roteamento de páginas ágil e automatizado.
+Tailwind CSS: Framework utilitário de CSS que viabiliza o design escuro (Dark Mode), moderno, responsivo e altamente elegante do projeto.
+JavaScript (ES6+): Código limpo, simples e de rápida manutenção, dispensando complexidades desnecessárias para acelerar as entregas.
+Node.js (LTS): Ambiente de execução robusto para o gerenciamento das dependências do sistema.
+💻 Como Rodar o Projeto Localmente
+Siga o passo a passo abaixo no seu terminal para executar o projeto na sua máquina:
+
+1. Clonar o Repositório
+git clone https://github.com/SEU-USUARIO/meu-estoque.git
+cd meu-estoque
+2. Instalar as Dependências
+npm install
+3. Rodar o Servidor de Desenvolvimento
+npm run dev
+4. Acessar no Navegador
+Abra o seu navegador e acesse: http://localhost:3000
+
+📋 Metodologia e Concepção
+A arquitetura das telas e fluxos de usuário foi validada através de conceitos fundamentais de Design Thinking, divididos em fases de empatia, definição, ideação, prototipagem e testes. A interface utiliza uma paleta de cores escura e de alto contraste, ideal para ambientes industriais e uso prolongado por equipes de almoxarifado.
+</file>
+
+<file path="app/saida/page.js">
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+
+export default function SaidaEstoque() {
+  const [estoque, setEstoque] = useState([]);
+  const [itemSelecionado, setItemSelecionado] = useState('');
+  const [qtdRetirar, setQtdRetirar] = useState('');
+  const [motivo, setMotivo] = useState('Retirada de Almoxarifado');
+
+  const [sucessoMsg, setSucessoMsg] = useState('');
+  const [erroMsg, setErroMsg] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  // Buscar a lista atualizada de insumos do banco de dados
+  const carregarEstoque = async () => {
+    try {
+      const res = await fetch('/api/estoque');
+      if (res.ok) {
+        const dados = await res.json();
+        setEstoque(dados);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar estoque:', err);
+    }
+  };
+
+  useEffect(() => {
+    carregarEstoque();
+  }, []);
+
+  const itemAtual = estoque.find(i => i.id === itemSelecionado);
+
+  // Processar a retirada do material
+  const handleBaixa = async (e) => {
+    e.preventDefault();
+    setErroMsg('');
+    setSucessoMsg('');
+
+    if (!itemSelecionado || !qtdRetirar || Number(qtdRetirar) <= 0) {
+      setErroMsg('Selecione um insumo e informe uma quantidade válida.');
+      return;
+    }
+
+    if (itemAtual && Number(itemAtual.qtd) < Number(qtdRetirar)) {
+      setErroMsg(`Saldo insuficiente! Saldo atual em estoque: ${itemAtual.qtd} ${itemAtual.unidade || 'mm'}.`);
+      return;
+    }
+
+    setEnviando(true);
+
+    try {
+      const res = await fetch('/api/estoque/saida', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: itemSelecionado,
+          quantidade: Number(qtdRetirar),
+          motivo
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSucessoMsg(`Retirada de ${qtdRetirar} ${itemAtual?.unidade || 'mm'} realizada com sucesso para "${itemAtual?.nome}"!`);
+        setItemSelecionado('');
+        setQtdRetirar('');
+        await carregarEstoque();
+      } else {
+        setErroMsg(data.error || 'Erro ao registrar a retirada.');
+      }
+    } catch (err) {
+      setErroMsg('Falha na comunicação com o servidor.');
+    } finally {
+      setEnviando(false);
+      setTimeout(() => setSucessoMsg(''), 5000);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F4F4F4] text-[#333333] font-sans">
+      
+      {/* Cabeçalho */}
+      <header className="bg-white border-b border-gray-200 shadow-sm py-4 px-6 md:px-12">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <img 
+              src="/logotipo.png" 
+              alt="Use Screen" 
+              className="h-10 w-auto object-contain"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                document.getElementById('fallback-logo').style.display = 'flex';
+              }}
+            />
+            <div id="fallback-logo" className="hidden w-10 h-10 rounded-xl bg-[#3A3B3C] items-center justify-center text-[#F2B78E] font-bold text-base">
+              US
+            </div>
+            <div className="border-l border-gray-200 pl-4">
+              <h1 className="text-base font-bold text-[#333333]">Retirada de Estoque</h1>
+              <p className="text-xs text-gray-500">Projeto Integrador II • Use Screen</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/" 
+              className="bg-[#3A3B3C] text-white hover:bg-[#333333] px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              🔍 Consultar
+            </Link>
+            <Link 
+              href="/entrada" 
+              className="bg-white text-[#333333] hover:bg-gray-50 border border-gray-200 px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              ➕ Entrada
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Conteúdo Principal */}
+      <main className="max-w-4xl mx-auto p-6 md:p-10 space-y-6">
+        
+        {/* Alertas */}
+        {erroMsg && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm font-bold shadow-sm">
+            ⚠️ {erroMsg}
+          </div>
+        )}
+        {sucessoMsg && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl text-sm font-bold shadow-sm">
+            ✅ {sucessoMsg}
+          </div>
+        )}
+
+        {/* Formulário de Retirada */}
+        <div className="bg-white p-8 rounded-2xl border border-gray-200/80 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-lg font-bold text-[#333333]">🔧 Retirada Direta de Material</h2>
+            <p className="text-xs text-gray-500">Selecione o insumo cadastrado e informe a quantidade a ser retirada em milímetros (mm) ou unidades (un).</p>
+          </div>
+
+          <form onSubmit={handleBaixa} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-gray-600 block mb-1">Selecione o Insumo:</label>
+                <select 
+                  className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#F2B78E]"
+                  value={itemSelecionado}
+                  onChange={(e) => setItemSelecionado(e.target.value)}
+                >
+                  <option value="">-- Escolha o item do estoque --</option>
+                  {estoque.map(item => (
+                    <option key={item.id} value={item.id}>
+                      [{item.id}] {item.nome} — Saldo: {item.qtd} {item.unidade || 'mm'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-600 block mb-1">Motivo da Retirada:</label>
+                <input 
+                  type="text"
+                  placeholder="Ex: Reposição, Manutenção, Refugo"
+                  className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#F2B78E]"
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {itemAtual && (
+              <div className="bg-[#F2B78E]/15 border border-[#F2B78E]/40 p-4 rounded-xl flex items-center justify-between text-xs font-bold text-[#333333]">
+                <span>Item Selecionado: <strong>{itemAtual.nome}</strong></span>
+                <span>Saldo Atual: <strong className="bg-white px-2.5 py-0.5 rounded shadow-xs">{itemAtual.qtd} {itemAtual.unidade || 'mm'}</strong></span>
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs font-bold text-gray-600 block mb-1">
+                Quantidade a Retirar {itemAtual ? `(${itemAtual.unidade || 'mm'})` : '(mm ou un)'}:
+              </label>
+              <input 
+                type="number"
+                placeholder={itemAtual?.unidade === 'un' ? 'Ex: 2' : 'Ex: 1500 (para 1.500 mm)'}
+                className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[#F2B78E]"
+                value={qtdRetirar}
+                onChange={(e) => setQtdRetirar(e.target.value)}
+              />
+            </div>
+
+            <button 
+              type="submit"
+              disabled={enviando}
+              className="w-full bg-[#3A3B3C] text-white hover:bg-[#333333] py-3.5 rounded-xl font-bold transition text-sm shadow-sm disabled:opacity-50"
+            >
+              {enviando ? 'Gravando...' : '🔧 Confirmar Retirada do Material'}
+            </button>
+          </form>
+        </div>
+
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="app/page.js">
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+
+export default function Home() {
+  const [pesquisa, setPesquisa] = useState('');
+  const [estoque, setEstoque] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+
+  const carregarEstoque = async () => {
+    try {
+      setCarregando(true);
+      const res = await fetch('/api/estoque');
+      if (res.ok) {
+        const dados = await res.json();
+        setEstoque(dados);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar os dados do estoque:', err);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarEstoque();
+  }, []);
+
+  const itensCriticos = estoque.filter(item => Number(item.qtd) < Number(item.min));
+  const itensFiltrados = estoque.filter(item =>
+    item.nome.toLowerCase().includes(pesquisa.toLowerCase()) ||
+    item.id.toLowerCase().includes(pesquisa.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-[#F4F4F4] text-[#333333] font-sans">
+      
+      {/* Cabeçalho */}
+      <header className="bg-white border-b border-gray-200 shadow-sm py-4 px-6 md:px-12">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+          
+          <div className="flex items-center gap-4">
+            <img 
+              src="/logotipo.png" 
+              alt="Use Screen" 
+              className="h-10 w-auto object-contain"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                document.getElementById('fallback-logo').style.display = 'flex';
+              }}
+            />
+            <div id="fallback-logo" className="hidden w-10 h-10 rounded-xl bg-[#3A3B3C] items-center justify-center text-[#F2B78E] font-bold text-base">
+              US
+            </div>
+            
+            <div className="border-l border-gray-200 pl-4">
+              <h1 className="text-base font-bold text-[#333333]">Controle de Estoque</h1>
+              <p className="text-xs text-gray-500">Projeto Integrador II • Use Screen • Grupo 22 - 2026 </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link 
+              href="/entrada" 
+              className="bg-[#F2B78E] text-[#333333] hover:bg-[#ebae82] px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              ➕ Entrada
+            </Link>
+
+            <Link 
+              href="/saida" 
+              className="bg-[#3A3B3C] text-white hover:bg-[#333333] px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              ➖ Saída (O.P.)
+            </Link>
+
+            <Link 
+              href="/cadastro" 
+              className="bg-white text-[#333333] hover:bg-gray-50 border border-gray-200 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              📝 Cadastrar
+            </Link>
+
+            <span className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold border border-emerald-100">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Sistema Conectado
+            </span>
+          </div>
+
+        </div>
+      </header>
+
+      {/* Conteúdo Principal */}
+      <main className="max-w-7xl mx-auto p-6 md:p-10 space-y-6">
+        
+        {/* Métricas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total de Itens</p>
+              <p className="text-3xl font-black text-[#333333] mt-1">{carregando ? '...' : estoque.length}</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-xl">📦</div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm border-l-4 border-l-red-500 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Itens Críticos </p>
+              <p className="text-3xl font-black text-red-500 mt-1">{carregando ? '...' : itensCriticos.length}</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-xl">⚠️</div>
+          </div>
+        </div>
+
+        {/* Busca */}
+        <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-sm">
+          <input
+            type="text"
+            placeholder="🔍 Digite o código (ex: TS-01) ou nome do material..."
+            className="w-full bg-[#F4F4F4] border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#333333] focus:outline-none focus:border-[#F2B78E]"
+            value={pesquisa}
+            onChange={(e) => setPesquisa(e.target.value)}
+          />
+        </div>
+
+        {/* Tabela de Inventário */}
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
+          <div className="p-4 px-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <h2 className="font-bold text-sm text-[#333333]">Inventário Físico do Almoxarifado</h2>
+            <button 
+              onClick={carregarEstoque} 
+              className="text-xs font-semibold text-gray-500 hover:text-[#333333] transition"
+            >
+              🔄 Atualizar
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="bg-[#F4F4F4] text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th className="py-3 px-6">Código</th>
+                  <th className="py-3 px-6"> Material</th>
+                  <th className="py-3 px-6">Categoria</th>
+                  <th className="py-3 px-6 text-center">Saldo Atual</th>
+                  <th className="py-3 px-6 text-center">Estoque Mín.</th>
+                  <th className="py-3 px-6 text-right">Situação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {carregando ? (
+                  <tr>
+                    <td colSpan="6" className="py-8 text-center text-gray-400 text-sm">
+                      Carregando dados do estoque...
+                    </td>
+                  </tr>
+                ) : itensFiltrados.map((item) => {
+                  const isCritico = Number(item.qtd) < Number(item.min);
+                  return (
+                    <tr key={item.id} className="hover:bg-gray-50/60 transition">
+                      <td className="py-3.5 px-6 font-mono font-bold text-xs text-[#3A3B3C]">{item.id}</td>
+                      <td className="py-3.5 px-6 font-semibold text-[#333333]">{item.nome}</td>
+                      <td className="py-3.5 px-6">
+                        <span className="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-md text-xs font-medium">
+                          {item.categoria}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-6 text-center font-bold">
+                        {item.qtd} <span className="text-xs font-normal text-gray-400">{item.unidade || 'mm'}</span>
+                      </td>
+                      <td className="py-3.5 px-6 text-center text-gray-500">
+                        {item.min} <span className="text-xs text-gray-400">{item.unidade || 'mm'}</span>
+                      </td>
+                      <td className="py-3.5 px-6 text-right">
+                        {isCritico ? (
+                          <span className="bg-red-50 text-red-600 px-2.5 py-1 rounded-md text-xs font-bold border border-red-100">
+                            Abaixo do Mínimo
+                          </span>
+                        ) : (
+                          <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md text-xs font-bold border border-emerald-100">
+                            Normal
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  );
+}
+</file>
+
+</files>
